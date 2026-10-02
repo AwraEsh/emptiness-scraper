@@ -1,0 +1,6 @@
+rich>=13.9,<16
+regex>=2024.11
+jdatetime>=5.2,<7
+tzdata>=2025.1
+platformdirs>=4.3,<5
+
