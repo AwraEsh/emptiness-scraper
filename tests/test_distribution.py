@@ -3,10 +3,13 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).parents[1]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="run.sh is validated on Unix runners")
 def test_linux_launcher_has_valid_shell_syntax():
     result = subprocess.run(["bash", "-n", str(ROOT / "run.sh")], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
