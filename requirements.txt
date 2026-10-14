@@ -1,4 +1,5 @@
-rich>=13.9,<16
+rich>=14.2,<16
+textual>=6.12,<7
 regex>=2024.11
 jdatetime>=5.2,<7
 tzdata>=2025.1

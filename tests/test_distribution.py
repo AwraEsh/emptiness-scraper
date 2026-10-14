@@ -18,7 +18,7 @@ def test_linux_launcher_has_valid_shell_syntax():
 
 
 def prepare_launcher_directory(directory):
-    for name in ("run.sh", "run.bat", "requirements.txt"):
+    for name in ("run.py", "run.sh", "run.bat", "requirements.txt"):
         shutil.copy2(ROOT / name, directory / name)
     shutil.copytree(ROOT / "emptiness_scraper", directory / "emptiness_scraper", ignore=shutil.ignore_patterns("__pycache__"))
 
@@ -40,12 +40,13 @@ def test_windows_launcher_creates_environment_and_reuses_it_offline(tmp_path):
 
 
 @pytest.mark.skipif(os.name == "nt", reason="The Unix launcher runs on Unix")
-def test_linux_launcher_reuses_installed_dependencies_without_network(tmp_path):
+@pytest.mark.parametrize("launcher", [["bash", "run.sh"], [sys.executable, "run.py"]])
+def test_linux_launcher_reuses_installed_dependencies_without_network(tmp_path, launcher):
     prepare_launcher_directory(tmp_path)
     (tmp_path / ".venv").symlink_to(sys.prefix, target_is_directory=True)
     environment = os.environ.copy()
     environment.update({"EMPTYNESS_SCRAPER_SMOKE": "1", "PIP_INDEX_URL": "http://127.0.0.1:9/simple", "PIP_RETRIES": "0"})
-    result = subprocess.run(["bash", "run.sh"], cwd=tmp_path, env=environment, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(launcher, cwd=tmp_path, env=environment, capture_output=True, text=True, timeout=30)
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Emptiness Scraper" in result.stdout
 

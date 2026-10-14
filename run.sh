@@ -1,40 +1,12 @@
 #!/usr/bin/env bash
-
 set -euo pipefail
-
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$PROJECT_DIR"
-
 if command -v python3 >/dev/null 2>&1; then
-    PYTHON_BIN="python3"
+    exec python3 "$PROJECT_DIR/run.py"
 elif command -v python >/dev/null 2>&1; then
-    PYTHON_BIN="python"
+    exec python "$PROJECT_DIR/run.py"
 else
-    echo "Python 3.11 or newer is required. Install Python and run this file again."
+    echo "Install Python 3.11 or newer, then run this launcher again."
     exit 1
 fi
-
-if ! "$PYTHON_BIN" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)'; then
-    echo "Python 3.11 or newer is required. Your current interpreter is too old."
-    exit 1
-fi
-
-if [[ ! -x ".venv/bin/python" ]]; then
-    echo "Creating the private Python environment..."
-    if ! "$PYTHON_BIN" -m venv .venv; then
-        echo "Could not create .venv. On Debian/Ubuntu install python3-venv, then try again."
-        exit 1
-    fi
-fi
-
-export PYTHONUTF8=1
-echo "Checking required packages..."
-if ! .venv/bin/python -m pip install --no-index --dry-run --disable-pip-version-check --quiet -r requirements.txt >/dev/null 2>&1; then
-    echo "Installing missing or incompatible packages..."
-    if ! .venv/bin/python -m pip install --disable-pip-version-check -r requirements.txt; then
-        echo "Setup failed. Check internet access, then run this file again."
-        exit 1
-    fi
-fi
-exec .venv/bin/python -m emptiness_scraper
 

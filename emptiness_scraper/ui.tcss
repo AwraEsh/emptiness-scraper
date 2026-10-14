@@ -1,0 +1,103 @@
+Screen {
+    background: #111416;
+    color: #e8e4dc;
+}
+#topbar {
+    dock: top;
+    height: 3;
+    padding: 1 3;
+    background: #1d2225;
+    color: #dfbf83;
+    text-style: bold;
+}
+#workspace { height: 1fr; }
+#sidebar {
+    width: 25;
+    padding: 2 1;
+    background: #171b1e;
+    border-right: solid #31383b;
+}
+#side-brand {
+    height: 5;
+    padding-left: 2;
+    color: #dfbf83;
+    text-style: bold;
+}
+#navigation {
+    height: 12;
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+#navigation > .option-list--option { padding: 0 2; color: #d8d6cc; }
+#navigation > .option-list--option-highlighted {
+    background: #31383a;
+    color: #f3d7a0;
+    text-style: bold;
+}
+#side-note { margin: 2 2; color: #899393; height: auto; }
+#main { padding: 1 3; width: 1fr; }
+#eyebrow { color: #dfbf83; text-style: bold; height: 2; }
+#page-title { text-style: bold; height: 2; }
+#content { height: 1fr; padding-right: 1; }
+.lead { color: #b2bab8; margin-bottom: 1; height: auto; }
+.hero { color: #eee8dc; text-style: bold; height: auto; margin: 1 0; }
+.card {
+    background: #1d2326;
+    border: round #354044;
+    padding: 1 2;
+    margin: 0 1 1 0;
+    height: auto;
+}
+.cards { height: auto; }
+.cards .card { width: 1fr; min-height: 6; }
+.field-label { color: #dfbf83; margin-top: 1; height: 1; }
+Input, Select, TextArea {
+    background: #1c2326;
+    border: tall #3a4649;
+    color: #e8e4dc;
+}
+Input:focus, Select:focus, TextArea:focus { border: tall #dfbf83; }
+TextArea { height: 6; }
+#paths { height: 7; }
+#intervals { height: 5; }
+.actions { height: 3; margin-top: 1; }
+Button {
+    background: #2b3438;
+    color: #e8e4dc;
+    border: none;
+    margin-right: 2;
+    min-width: 15;
+}
+Button.-primary { background: #dfbf83; color: #171b1e; text-style: bold; }
+Button:focus { text-style: bold reverse; }
+#notice {
+    height: auto;
+    min-height: 1;
+    max-height: 4;
+    margin-top: 1;
+    color: #b2bab8;
+}
+#notice.error { color: #f1ad98; }
+#notice.success { color: #abd3b5; }
+LoadingIndicator { height: 2; color: #dfbf83; display: none; }
+.mapping-row { height: 3; margin-top: 1; }
+.mapping-row Static { width: 1fr; padding-top: 1; }
+.mapping-row Input { width: 1fr; }
+.mapping-row Select { width: 24; }
+#confirm-mapping { margin: 1 0; height: auto; }
+DataTable { height: 9; background: #1b2225; margin: 1 0; }
+#reports-list { height: 6; background: #1c2326; border: round #354044; }
+#report-body { height: auto; }
+#preview-scroll { height: 1fr; min-height: 8; border: round #354044; margin-top: 1; }
+#report-location { color: #b2bab8; }
+#ascii { color: #dfbf83; height: auto; margin-bottom: 1; }
+Footer { background: #252d30; color: #ccc5b6; }
+Screen.compact #sidebar { display: none; }
+Screen.compact #main { padding: 1; }
+Screen.compact .cards { layout: vertical; }
+Screen.compact .cards .card { width: 100%; min-height: 3; padding: 0 1; }
+Screen.compact #ascii { display: none; }
+Screen.narrow-banner #ascii { display: none; }
+Screen.compact #topbar { padding: 1; }
+Screen.compact .mapping-row Select { width: 18; }

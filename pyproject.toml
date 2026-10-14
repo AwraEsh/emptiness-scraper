@@ -4,12 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emptiness-scraper"
-version = "1.0.1"
+version = "1.1.0"
 description = "Offline metrics and rule-based analysis for Telegram one-to-one JSON exports"
 requires-python = ">=3.11"
 authors = [{name = "AwraEsh"}]
 dependencies = [
-    "rich>=13.9,<16",
+    "rich>=14.2,<16",
+    "textual>=6.12,<7",
     "regex>=2024.11",
     "jdatetime>=5.2,<7",
     "tzdata>=2025.1",
@@ -25,4 +26,7 @@ addopts = "-ra"
 
 [tool.setuptools.packages.find]
 include = ["emptiness_scraper*"]
+
+[tool.setuptools.package-data]
+emptiness_scraper = ["*.tcss"]
 

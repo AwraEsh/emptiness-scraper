@@ -1,47 +1,23 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-
+set "PYTHONUTF8=1"
 where py >nul 2>nul
 if not errorlevel 1 (
-    set "PYTHON=py -3"
-) else (
-    where python >nul 2>nul
-    if errorlevel 1 (
-        echo Python 3.11 or newer is required. Install Python from https://www.python.org/downloads/
-        pause
-        exit /b 1
-    )
-    set "PYTHON=python"
+    py -3 run.py
+    if errorlevel 1 goto :failure
+    exit /b 0
 )
-
-%PYTHON% -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)"
+where python >nul 2>nul
 if errorlevel 1 (
-    echo Python 3.11 or newer is required. Your current interpreter is too old.
+    echo Install Python 3.11 or newer from https://www.python.org/downloads/
     pause
     exit /b 1
 )
-
-if not exist ".venv\Scripts\python.exe" (
-    echo Creating the private Python environment...
-    %PYTHON% -m venv .venv
-    if errorlevel 1 goto :failure
-)
-
-set "PYTHONUTF8=1"
-echo Checking required packages...
-".venv\Scripts\python.exe" -m pip install --no-index --dry-run --disable-pip-version-check --quiet -r requirements.txt >nul 2>nul
-if errorlevel 1 (
-    echo Installing missing or incompatible packages...
-    ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt
-    if errorlevel 1 goto :failure
-)
-
-".venv\Scripts\python.exe" -m emptiness_scraper
-if errorlevel 1 exit /b 1
+python run.py
+if errorlevel 1 goto :failure
 exit /b 0
-
 :failure
-echo Setup failed. Check your internet connection and Python installation, then run this file again.
-pause
+echo The launcher could not start. Review the message above and try again.
+if not defined EMPTYNESS_SCRAPER_SMOKE pause
 exit /b 1

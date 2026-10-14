@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re
+import regex
 
 from .models import Message, Session
 from .textstats import normalize_text
@@ -18,8 +18,10 @@ def detect_text_signals(message: Message, rules: dict[str, list[str]] | None = N
     events: list[dict] = []
     for category, patterns in (DEFAULT_RULES if rules is None else rules).items():
         try:
-            matched = next((pattern for pattern in patterns if re.search(pattern, normalized, re.IGNORECASE)), None)
-        except re.error as error:
+            matched = next((pattern for pattern in patterns if regex.search(pattern, normalized, regex.IGNORECASE, timeout=0.05)), None)
+        except TimeoutError as error:
+            raise ValueError(f"Rule in {category} exceeded the match time limit. Simplify this regular expression.") from error
+        except regex.error as error:
             raise ValueError(f"Invalid pattern in {category}: {error}") from error
         if matched is not None:
             events.append(_event(category, message, f"Matched text pattern: {matched}"))
