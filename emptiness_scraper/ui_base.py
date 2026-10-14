@@ -60,6 +60,8 @@ class WorkspaceScreen(Screen):
         navigation.highlighted = [item[0] for item in NAVIGATION].index(self.route)
         if self.route == "home":
             navigation.focus()
+            if self.workspace.terminal_name == "Unknown terminal" and self.workspace.preferences.terminal_rendering == "auto":
+                self.show_notice("Terminal not identified. Is Persian readable? If not, press F4 and change Persian terminal rendering. Auto uses native Unicode.")
 
     def on_resize(self, event) -> None:
         self.set_class(event.size.width < 96, "compact")

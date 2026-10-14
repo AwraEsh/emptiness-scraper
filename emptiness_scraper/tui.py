@@ -6,6 +6,7 @@ from textual.app import App
 from textual.binding import Binding
 
 from .settings import AppSettings, load_settings
+from .display import configure_rendering
 from .ui_analysis import ImportScreen, ResultScreen, ReviewScreen
 from .ui_base import WorkspaceScreen
 from .ui_library import AboutScreen, ConfirmDialog, HomeScreen, ReportsScreen, SettingsScreen
@@ -32,6 +33,7 @@ class EmptinessApp(App[None]):
         super().__init__()
         self.config_path = config_path
         self.preferences = settings if settings is not None else load_settings(config_path)
+        self.rendering_mode, self.terminal_name = configure_rendering(self.preferences.terminal_rendering)
         self.busy = False
         self.import_text = ""
         self.last_result: dict = {}

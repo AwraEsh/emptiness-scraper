@@ -17,7 +17,7 @@ from .branding import BANNER, CREATOR_NOTE, about_text
 from .services import ReportPage, list_reports, read_report_page
 from .settings import AppSettings, save_settings, validate_settings
 from .ui_base import WorkspaceScreen
-from .display import display_label, markdown_parser
+from .display import display_label, markdown_parser, configure_rendering
 
 
 class ConfirmDialog(ModalScreen[bool]):
@@ -92,6 +92,9 @@ class SettingsScreen(WorkspaceScreen):
         yield Input(str(settings.session_gap_hours), id="gap")
         yield Static("REPORT DIRECTORY", classes="field-label")
         yield Input(settings.output_directory, id="output")
+        yield Static("PERSIAN TERMINAL RENDERING", classes="field-label")
+        yield Select([("Auto (native Unicode)", "auto"), ("Native Unicode / GNOME", "native"), ("Compatibility / no native RTL", "compatibility")], value=settings.terminal_rendering, allow_blank=False, id="terminal-rendering")
+        yield Static(f"Detected: {self.workspace.terminal_name}. Native lets the terminal shape Persian. Use compatibility only if native is unreadable. Saved changes apply immediately; reopen a report to refresh its preview.", classes="lead", markup=False)
         yield Static("ENGLISH STOPWORDS / COMMA OR LINE SEPARATED", classes="field-label")
         yield TextArea(", ".join(settings.english_stopwords), id="english-stopwords")
         yield Static("PERSIAN STOPWORDS / COMMA OR LINE SEPARATED", classes="field-label")
@@ -121,6 +124,7 @@ class SettingsScreen(WorkspaceScreen):
         self.query_one("#timezone", Input).value = defaults.timezone
         self.query_one("#gap", Input).value = str(defaults.session_gap_hours)
         self.query_one("#output", Input).value = defaults.output_directory
+        self.query_one("#terminal-rendering", Select).value = defaults.terminal_rendering
         self.query_one("#english-stopwords", TextArea).load_text(", ".join(defaults.english_stopwords))
         self.query_one("#persian-stopwords", TextArea).load_text(", ".join(defaults.persian_stopwords))
         self.query_one("#rules-editor", TextArea).load_text(json.dumps(defaults.rules, ensure_ascii=False, indent=2))
@@ -132,6 +136,7 @@ class SettingsScreen(WorkspaceScreen):
             settings.timezone = self.query_one("#timezone", Input).value.strip()
             settings.session_gap_hours = float(self.query_one("#gap", Input).value)
             settings.output_directory = self.query_one("#output", Input).value.strip()
+            settings.terminal_rendering = str(self.query_one("#terminal-rendering", Select).value)
             settings.english_stopwords = [value.strip() for value in self.query_one("#english-stopwords", TextArea).text.replace("\n", ",").split(",") if value.strip()]
             settings.persian_stopwords = [value.strip() for value in self.query_one("#persian-stopwords", TextArea).text.replace("\n", ",").split(",") if value.strip()]
             settings.rules = json.loads(self.query_one("#rules-editor", TextArea).text)
@@ -141,6 +146,7 @@ class SettingsScreen(WorkspaceScreen):
             self.show_notice(str(error), error=True)
             return
         self.workspace.preferences = settings
+        self.workspace.rendering_mode, self.workspace.terminal_name = configure_rendering(settings.terminal_rendering)
         self.workspace.report_root = settings.output_directory
         self.show_notice("Preferences saved. New analyses will use these defaults.", success=True)
 

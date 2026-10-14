@@ -165,3 +165,25 @@ def test_persian_report_names_and_tables_keep_rows_and_raw_paths(tmp_path):
             await pilot.press("f1")
             assert isinstance(app.screen, HomeScreen)
     asyncio.run(scenario())
+
+
+def test_terminal_rendering_preference_is_saved_and_applied(tmp_path):
+    from textual.widgets import Select
+    from emptiness_scraper.settings import load_settings
+    from emptiness_scraper.display import display_text, configure_rendering
+    async def scenario():
+        config = tmp_path / "settings.json"
+        app = EmptinessApp(settings=AppSettings(), config_path=config)
+        async with app.run_test(size=(120, 45)) as pilot:
+            await pilot.press("f4")
+            app.screen.query_one("#terminal-rendering", Select).value = "compatibility"
+            await pilot.press("ctrl+enter")
+            assert load_settings(config).terminal_rendering == "compatibility"
+            assert display_text("سلام") != "سلام"
+            app.screen.query_one("#terminal-rendering", Select).value = "native"
+            await pilot.press("ctrl+enter")
+            assert display_text("سلام") == "سلام"
+    try:
+        asyncio.run(scenario())
+    finally:
+        configure_rendering("native", {})

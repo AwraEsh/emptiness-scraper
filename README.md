@@ -28,6 +28,10 @@ The first setup requires internet access. Later launches check installed package
 
 ## Keyboard controls
 
+### Persian display
+
+In **Preferences (F4)**, choose **Persian terminal rendering**. Auto detects VTE/GNOME and uses native Unicode, leaving Persian shaping to the terminal. Unknown terminals show a reminder to check readability. Choose Native Unicode for GNOME Terminal; try Compatibility only on terminals without native Persian rendering. Save preferences and reopen the report preview. Fonts must include Persian glyphs; no mode can add missing font support. Report files and analysis data are never reshaped.
+
 | Key | Action |
 | --- | --- |
 | Up / Down | Navigate menus and choices |

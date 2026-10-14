@@ -23,12 +23,15 @@ class AppSettings:
     timezone: str = "Asia/Tehran"
     session_gap_hours: float = 6
     output_directory: str = "reports"
+    terminal_rendering: str = "auto"
     english_stopwords: list[str] = field(default_factory=lambda: list(DEFAULT_ENGLISH_STOPWORDS))
     persian_stopwords: list[str] = field(default_factory=lambda: list(DEFAULT_PERSIAN_STOPWORDS))
     rules: dict[str, list[str]] = field(default_factory=lambda: {key: list(value) for key, value in DEFAULT_RULES.items()})
 
 
 def validate_settings(settings: AppSettings) -> None:
+    if settings.terminal_rendering not in {"auto", "native", "compatibility"}:
+        raise ValueError("Terminal rendering must be auto, native, or compatibility.")
     resolve_timezone(settings.timezone)
     if not math.isfinite(settings.session_gap_hours) or settings.session_gap_hours <= 0:
         raise ValueError("Session gap must be finite and positive.")
@@ -69,6 +72,7 @@ def load_settings(path: Path | None = None) -> AppSettings:
             timezone=str(data.get("timezone", "Asia/Tehran")),
             session_gap_hours=float(data.get("session_gap_hours", 6)),
             output_directory=str(data.get("output_directory", "reports")),
+            terminal_rendering=str(data.get("terminal_rendering", "auto")),
             english_stopwords=[str(value) for value in data.get("english_stopwords", DEFAULT_ENGLISH_STOPWORDS)],
             persian_stopwords=[str(value) for value in data.get("persian_stopwords", DEFAULT_PERSIAN_STOPWORDS)],
             rules={str(key): [str(pattern) for pattern in value] for key, value in data.get("rules", DEFAULT_RULES).items()},
