@@ -4,6 +4,8 @@ Emptiness Scraper is an offline terminal application for comparing the observabl
 
 Version 1.1.0 introduces a full-screen keyboard-driven workspace. Screens update in place, with a persistent sidebar, responsive forms, background analysis, and a paginated Markdown report library.
 
+Version 1.2.0 offers two interfaces at every launch: **Full-screen** (keyboard-driven panels and previews) and **Classic text** (numbered menus and prompts, like the original wizard). Type 1 or 2 and press Enter; 0 exits. Both share the same analysis, reports and saved preferences. Classic mode avoids alternate-screen controls, ANSI styling, cursor positioning and side-by-side tables, making it the fallback for basic terminals, redirected input and screen readers. Its report reader shows paginated plain Markdown. Choose 0 in its main menu to return to the interface chooser.
+
 ![Full-screen workspace](docs/images/overview.png)
 
 Telegram: @Ou_Rash
@@ -24,7 +26,7 @@ python3 run.py
 
 `python run.py` works on Windows too. Existing `run.sh` and `run.bat` wrappers remain available. The Python launcher creates a private `.venv`, checks dependencies, and opens the English full-screen interface. Source exports are read-only.
 
-The first setup requires internet access. Later launches check installed package versions locally and work offline when requirements are satisfied. Dependency changes may require another online setup.
+The first setup requires internet access. Later launches check installed package versions locally and work offline when requirements are satisfied. Dependency changes may require another online setup. Windows and Linux are covered by CI. macOS can use `python3 run.py` with Python 3.11+, but has not been tested on a physical Mac. No desktop environment is required. Full-screen mode requires an interactive terminal with cursor support; choose Classic text otherwise. Persian glyph coverage and native RTL behavior still depend on the terminal/font; no interface can guarantee support on every OS or terminal.
 
 ## Keyboard controls
 

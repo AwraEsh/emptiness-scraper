@@ -1,0 +1,11 @@
+# Two terminal interfaces
+
+Every normal launch offers Full-screen, Classic text and Exit, with short descriptions. Selection uses a number plus Enter rather than terminal-specific raw keys. Full-screen retains the existing Textual UI. Classic uses only line input/output and numbered menus, with no ANSI controls or cursor-positioned grids. A noninteractive or TERM=dumb session cannot enter full-screen mode but can use classic mode. EOF exits cleanly. Smoke mode remains noninteractive for launcher CI.
+
+`classic.py` contains the restored classic workflow; `app.py` dispatches lazily. Both use shared settings, validation, identity helpers and `services.analyze_exports`. There is no second analysis engine. Classic supports export validation, participant/alias confirmation, per-run timezone/gap/output overrides, incomplete intervals, report paging and editable language rules/stopwords. Its settings writes are validated and atomic; invalid edits preserve the last saved settings. Privacy warnings precede report generation. Source exports are never changed.
+
+Classic uses logical Unicode by default. Shared F4/preferences rendering modes (Auto, Native, Compatibility) from the Persian fix remain available. GNOME/VTE detection selects native text; unknown terminals prompt in the full-screen UI and can change preferences in either interface. Compatibility is opt-in and does not change saved report content. Terminal fonts must provide Persian glyphs. Plain Markdown is shown in classic reports so it does not need the full-screen table renderer.
+
+Windows/Linux Python 3.11/3.13 CI exercises classic menu dispatch and workflow tests in addition to Textual pilot tests. Unix PTY coverage selects full-screen through the real chooser and checks alternate-screen restoration. macOS uses the same Python/Unix entrypoint but has no CI or physical-device validation. Accessibility benefits are from line-oriented navigation; screen-reader behavior itself is not independently verified.
+
+Version 1.1.1's forced shaping was removed from default rendering in 1.1.2. Release 1.2.0 includes that correction and rendering preferences, as well as the dual interfaces. Historical release-download removal does not remove Git tags or change stored local reports.

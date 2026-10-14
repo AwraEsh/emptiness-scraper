@@ -72,11 +72,12 @@ def test_multiple_exports_flow_from_json_to_report_bundle(tmp_path):
     assert (output / "csv" / "responses.csv").exists()
 
 
-def test_noninteractive_terminal_is_rejected_with_actionable_message(tmp_path):
+def test_noninteractive_terminal_can_select_classic_with_actionable_fallback(tmp_path):
     environment = os.environ.copy()
     environment.update({"PYTHONPATH": str(Path(__file__).parents[1]), "PYTHONUTF8": "1"})
     environment.pop("EMPTYNESS_SCRAPER_SMOKE", None)
-    result = subprocess.run([sys.executable, "-m", "emptiness_scraper"], input="6\n", cwd=tmp_path, env=environment, capture_output=True, encoding="utf-8", timeout=10)
-    assert result.returncode == 2
-    assert "interactive terminal" in result.stderr
-    assert "python run.py" in result.stderr
+    result = subprocess.run([sys.executable, "-m", "emptiness_scraper"], input="1\n2\n6\n", cwd=tmp_path, env=environment, capture_output=True, encoding="utf-8", timeout=10)
+    assert result.returncode == 0
+    assert "interactive terminal" in result.stdout
+    assert "CLASSIC TEXT" in result.stdout
+    assert "Choose 2 for Classic text" in result.stdout

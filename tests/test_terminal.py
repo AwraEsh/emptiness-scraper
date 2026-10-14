@@ -36,6 +36,8 @@ def test_real_terminal_uses_alternate_screen_and_restores_it_on_quit(tmp_path):
         assert marker in captured, bytes(captured[-3000:]).decode("utf-8", errors="replace")
 
     try:
+        collect_until(b"Choose your interface")
+        os.write(master, b"1\n")
         collect_until(b"A quiet workspace")
         assert b"\x1b[?1049h" in captured
         os.write(master, b"\x1bOQ")
