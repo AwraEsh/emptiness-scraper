@@ -9,6 +9,7 @@ from textual.widgets import Footer, LoadingIndicator, OptionList, Static
 from textual.widgets.option_list import Option
 
 from . import __version__
+from .display import display_text
 
 if TYPE_CHECKING:
     from .tui import EmptinessApp
@@ -71,7 +72,7 @@ class WorkspaceScreen(Screen):
 
     def show_notice(self, text: str, error: bool = False, success: bool = False) -> None:
         notice = self.query_one("#notice", Static)
-        notice.update(text if len(text) <= 420 else text[:417] + "…")
+        notice.update(display_text(text if len(text) <= 420 else text[:417] + "…"))
         notice.set_class(error, "error")
         notice.set_class(success, "success")
 

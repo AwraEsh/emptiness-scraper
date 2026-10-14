@@ -109,7 +109,7 @@ def list_reports(root: str) -> list[Path]:
     directory = Path(root).expanduser().resolve()
     if not directory.is_dir():
         return []
-    return sorted((path for path in directory.glob("emptiness-scraper-*") if (path / "report.md").is_file() and (path / "analysis.json").is_file()), reverse=True)
+    return sorted((path for path in directory.glob("emptiness-scraper-*") if (path / "analysis.json").is_file() and any(path.glob("*.md"))), reverse=True)
 
 
 @dataclass(frozen=True)

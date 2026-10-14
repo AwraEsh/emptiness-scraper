@@ -17,6 +17,7 @@ from .branding import BANNER, CREATOR_NOTE, about_text
 from .services import ReportPage, list_reports, read_report_page
 from .settings import AppSettings, save_settings, validate_settings
 from .ui_base import WorkspaceScreen
+from .display import display_label, markdown_parser
 
 
 class ConfirmDialog(ModalScreen[bool]):
@@ -165,12 +166,12 @@ class ReportsScreen(WorkspaceScreen):
         except OSError as error:
             self.library_error = str(error)
         yield Static("Select a report, then an appendix. Previews are paginated to keep large reports responsive. Use the location field to select and copy the full path.", classes="lead", markup=False)
-        yield OptionList(*(Option(Text(path.name), id=str(index)) for index, path in enumerate(self.reports)), id="reports-list")
+        yield OptionList(*(Option(display_label(path.name), id=str(index)) for index, path in enumerate(self.reports)), id="reports-list")
         yield Select([], prompt="Choose an appendix", id="report-file")
         yield Input("", id="report-location", placeholder="No report selected")
         yield Static("", id="page-number", markup=False)
         with VerticalScroll(id="preview-scroll"):
-            yield Markdown("No reports yet. Create an analysis to populate your library.", id="report-body", open_links=False)
+            yield Markdown("No reports yet. Create an analysis to populate your library.", id="report-body", open_links=False, parser_factory=markdown_parser)
 
     def controls(self) -> ComposeResult:
         with Horizontal(classes="actions"):
@@ -195,8 +196,13 @@ class ReportsScreen(WorkspaceScreen):
             self.show_notice(str(error), error=True)
             return
         select = self.query_one("#report-file", Select)
-        select.set_options([(path.name, path.name) for path in files])
-        select.value = "report.md"
+        select.set_options([(display_label(path.name), path.name) for path in files])
+        if files:
+            select.value = "report.md" if any(path.name == "report.md" for path in files) else files[0].name
+        else:
+            self.selected_file = None
+            self.query_one("#report-location", Input).value = ""
+            self.show_notice("This folder has no Markdown files. Choose another report.")
 
     def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         if event.option_list.id == "reports-list":

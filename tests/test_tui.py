@@ -138,3 +138,30 @@ def test_quit_is_confirmed_and_cannot_interrupt_active_analysis(tmp_path):
             await pilot.press("escape")
             assert isinstance(app.screen, HomeScreen)
     asyncio.run(scenario())
+
+
+def test_persian_report_names_and_tables_keep_rows_and_raw_paths(tmp_path):
+    from emptiness_scraper.display import display_text
+    from textual.widgets import Markdown, OptionList
+
+    folder = tmp_path / "emptiness-scraper-نمونه"
+    folder.mkdir()
+    appendix = folder / "واژه‌ها.md"
+    appendix.write_text("| Name | Count |\n| --- | --- |\n| سلام Example | 12 |", encoding="utf-8")
+    (folder / "analysis.json").write_text("{}", encoding="utf-8")
+
+    async def scenario():
+        app = EmptinessApp(settings=AppSettings(output_directory=str(tmp_path)), config_path=tmp_path / "settings.json")
+        async with app.run_test(size=(90, 35)) as pilot:
+            await pilot.press("f3")
+            await app.workers.wait_for_complete()
+            await pilot.pause()
+            assert app.screen.selected_file == appendix
+            assert app.screen.query_one("#report-location", Input).value == str(appendix)
+            options = app.screen.query_one("#reports-list", OptionList)
+            assert options.get_option_at_index(0).prompt.plain == display_text(folder.name)
+            assert len(app.screen.query_one("#report-body", Markdown).query("MarkdownTable")) == 1
+            await pilot.resize_terminal(130, 45)
+            await pilot.press("f1")
+            assert isinstance(app.screen, HomeScreen)
+    asyncio.run(scenario())

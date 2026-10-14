@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 
 from rich.text import Text
+from .display import display_label, display_text
 from textual import work
 from textual.app import ComposeResult
 from textual.containers import Horizontal
@@ -96,7 +97,7 @@ class ImportScreen(WorkspaceScreen):
         table = self.query_one("#export-table", DataTable)
         table.clear()
         for export in exports:
-            table.add_row(Text(export.path.name), str(len(export.messages)), str(export.service_count), str(export.first_timestamp or "Empty"), str(export.last_timestamp or "Empty"))
+            table.add_row(display_label(export.path.name), str(len(export.messages)), str(export.service_count), str(export.first_timestamp or "Empty"), str(export.last_timestamp or "Empty"))
         table.display = True
         _, warnings = file_audit(exports)
         self.show_notice(f"Validated {len(exports)} export(s). " + " ".join(warnings), success=True)
@@ -126,8 +127,8 @@ class ReviewScreen(WorkspaceScreen):
         for index, (sender_id, count) in enumerate(self.senders):
             selected = "a" if sender_id in self.suggested_a.ids else "b" if sender_id in self.suggested_b.ids else "exclude"
             with Horizontal(classes="mapping-row"):
-                label = Static(Text(f"{sender_id} · {count:,} messages\n{names[sender_id]}", no_wrap=True, overflow="ellipsis"))
-                label.tooltip = f"{names[sender_id]}\n{sender_id}\n{count:,} messages"
+                label = Static(Text(display_text(f"{sender_id} · {count:,} messages") + "\n" + display_text(names[sender_id], single_line=True), no_wrap=True, overflow="ellipsis"))
+                label.tooltip = display_text(f"{names[sender_id]}\n{sender_id}\n{count:,} messages")
                 yield label
                 yield Select([("Participant A", "a"), ("Participant B", "b"), ("Exclude", "exclude")], value=selected, allow_blank=False, id=f"sender-{index}")
         yield Checkbox("I reviewed the participant mapping", id="confirm-mapping")
@@ -228,7 +229,7 @@ class ResultScreen(WorkspaceScreen):
         table = self.query_one("#participants-table", DataTable)
         table.add_columns("Participant", "Messages", "Turns", "Words", "Reactions received")
         for name, values in self.workspace.last_result["participants"].items():
-            table.add_row(Text(name), *(str(values[key]) for key in ("messages", "turns", "words", "reactions")))
+            table.add_row(display_label(name), *(str(values[key]) for key in ("messages", "turns", "words", "reactions")))
         self.query_one("#read-report", Button).focus()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:

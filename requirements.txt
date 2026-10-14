@@ -4,4 +4,6 @@ regex>=2024.11
 jdatetime>=5.2,<7
 tzdata>=2025.1
 platformdirs>=4.3,<5
+arabic-reshaper>=3,<4
+python-bidi>=0.6,<0.7
 
