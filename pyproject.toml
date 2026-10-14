@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emptiness-scraper"
-version = "1.0.0"
+version = "1.0.1"
 description = "Offline metrics and rule-based analysis for Telegram one-to-one JSON exports"
 requires-python = ">=3.11"
 authors = [{name = "AwraEsh"}]

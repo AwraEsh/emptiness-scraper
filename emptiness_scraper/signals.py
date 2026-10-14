@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 
 from .models import Message, Session
 from .textstats import normalize_text
@@ -17,9 +16,13 @@ DEFAULT_RULES = {
 def detect_text_signals(message: Message, rules: dict[str, list[str]] | None = None) -> list[dict]:
     normalized = normalize_text(message.text)
     events: list[dict] = []
-    for category, patterns in (rules or DEFAULT_RULES).items():
-        if any(re.search(pattern, normalized, re.IGNORECASE) for pattern in patterns):
-            events.append(_event(category, message, f"Matched an editable {category} text rule."))
+    for category, patterns in (DEFAULT_RULES if rules is None else rules).items():
+        try:
+            matched = next((pattern for pattern in patterns if re.search(pattern, normalized, re.IGNORECASE)), None)
+        except re.error as error:
+            raise ValueError(f"Invalid pattern in {category}: {error}") from error
+        if matched is not None:
+            events.append(_event(category, message, f"Matched text pattern: {matched}"))
     if "?" in message.text or "؟" in message.text:
         events.append(_event("question", message, "Message contains a question mark."))
     return events

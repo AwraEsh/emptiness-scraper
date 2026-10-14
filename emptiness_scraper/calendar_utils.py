@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+import re
 
 import jdatetime
 
@@ -10,9 +11,13 @@ def resolve_timezone(value: str):
     cleaned = value.strip()
     if cleaned.upper() == "UTC":
         return UTC
-    if cleaned.startswith(("+", "-")) and len(cleaned) == 6:
+    if cleaned.startswith(("+", "-")):
+        if not re.fullmatch(r"[+-]\d{2}:\d{2}", cleaned):
+            raise ValueError("Use an IANA timezone or an offset such as +03:30.")
         sign = 1 if cleaned[0] == "+" else -1
         hours, minutes = map(int, cleaned[1:].split(":"))
+        if hours > 23 or minutes > 59:
+            raise ValueError("Timezone offset hours must be below 24 and minutes below 60.")
         return timezone(sign * timedelta(hours=hours, minutes=minutes))
     return ZoneInfo(cleaned)
 

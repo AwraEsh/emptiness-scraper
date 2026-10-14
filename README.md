@@ -21,6 +21,8 @@ chmod +x run.sh
 
 The launchers create a private `.venv`, check dependencies, and open the English wizard. Source exports are read-only.
 
+The first setup requires internet access. Later launches check installed package versions locally and work offline when requirements are satisfied. Dependency changes may require another online setup.
+
 ## Telegram export
 
 In Telegram Desktop, export a private chat as machine-readable JSON. Media downloads are optional: timing and message-type statistics still work when media files are absent. Give the wizard either individual JSON files or a directory containing them. Filenames such as `1.json` and `2.json` are supported, but internal timestamps always decide the final order.
@@ -33,10 +35,15 @@ Every run creates a new timestamped directory containing:
 
 - `report.md`
 - Markdown appendices for sessions, responses, text, emoji, and rule events
+- A full timeline appendix with monthly/quarterly comparisons, activity hours, input audit, and metric definitions
 - CSV tables for every derived event
 - `analysis.json`, a versioned machine-readable snapshot
 
 The report may contain names and excerpts from the selected chat. Keep it private. For convenient reading, send the Markdown files to your Telegram Saved Messages.
+
+The previous-report menu can also display the main report inside the terminal. Markdown event times use the selected timezone with Gregorian and Jalali dates; machine-readable timestamps remain UTC. Monthly groups use Gregorian calendar months.
+
+Version 1.0.1 includes a reliability review covering account aliases, chronology, period boundaries, missing reply targets, settings validation, and offline setup. See [the audit record](docs/AUDIT_2026-10-14.md) and [metric definitions](docs/METRICS.md) for exact behavior and limitations.
 
 ## Settings
 

@@ -21,11 +21,20 @@ fi
 
 if [[ ! -x ".venv/bin/python" ]]; then
     echo "Creating the private Python environment..."
-    "$PYTHON_BIN" -m venv .venv
+    if ! "$PYTHON_BIN" -m venv .venv; then
+        echo "Could not create .venv. On Debian/Ubuntu install python3-venv, then try again."
+        exit 1
+    fi
 fi
 
 export PYTHONUTF8=1
 echo "Checking required packages..."
-.venv/bin/python -m pip install --disable-pip-version-check --quiet -r requirements.txt
+if ! .venv/bin/python -m pip install --no-index --dry-run --disable-pip-version-check --quiet -r requirements.txt >/dev/null 2>&1; then
+    echo "Installing missing or incompatible packages..."
+    if ! .venv/bin/python -m pip install --disable-pip-version-check -r requirements.txt; then
+        echo "Setup failed. Check internet access, then run this file again."
+        exit 1
+    fi
+fi
 exec .venv/bin/python -m emptiness_scraper
 

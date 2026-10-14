@@ -11,3 +11,7 @@ def test_tokenize_handles_bilingual_text():
 
 def test_emoji_sequences_remain_whole():
     assert extract_emojis("Hi 👩🏽‍💻! ❤️") == ["👩🏽‍💻", "❤️"]
+
+
+def test_persian_diacritics_and_tatweel_do_not_split_words():
+    assert tokenize("كِتاب كتـاب") == ["کتاب", "کتاب"]

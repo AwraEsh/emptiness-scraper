@@ -19,3 +19,7 @@ def test_path_input_accepts_quoted_semicolon_separated_paths():
         "C:\\Chat One\\1.json",
         "/tmp/2.json",
     ]
+
+
+def test_path_input_accepts_single_quotes_and_embedded_semicolon():
+    assert parse_path_input("'/tmp/chat;one.json'; '/tmp/chat two.json'") == ["/tmp/chat;one.json", "/tmp/chat two.json"]

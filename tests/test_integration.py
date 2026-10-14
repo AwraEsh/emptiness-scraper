@@ -1,4 +1,7 @@
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 from emptiness_scraper.analysis import AnalysisOptions, analyze_chat
@@ -67,3 +70,20 @@ def test_multiple_exports_flow_from_json_to_report_bundle(tmp_path):
     assert result["summary"]["service_count"] == 1
     assert (output / "report.md").exists()
     assert (output / "csv" / "responses.csv").exists()
+
+
+def test_interactive_wizard_generates_report_and_reads_it_back(tmp_path):
+    source = tmp_path / "chat.json"
+    write_export(source, [row(1, 1767225600, "a", "Example A", "Hello 👋"), row(2, 1767225660, "b", "Example B", "سلام")])
+    before = source.read_bytes()
+    environment = os.environ.copy()
+    environment.update({"PYTHONPATH": str(Path(__file__).parents[1]), "PYTHONUTF8": "1", "XDG_CONFIG_HOME": str(tmp_path / "config"), "APPDATA": str(tmp_path / "config"), "LOCALAPPDATA": str(tmp_path / "config")})
+    environment.pop("EMPTYNESS_SCRAPER_SMOKE", None)
+    result = subprocess.run([sys.executable, "-m", "emptiness_scraper"], input=f"1\n{source}\nTehran\ny\nn\n2\n1\n6\n", cwd=tmp_path, env=environment, capture_output=True, encoding="utf-8", timeout=30)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Full report directory:" in result.stdout
+    assert "Analysis complete" in result.stdout
+    assert source.read_bytes() == before
+    reports = list((tmp_path / "reports").glob("*/analysis.json"))
+    assert len(reports) == 1
+    assert json.loads(reports[0].read_text(encoding="utf-8"))["summary"]["message_count"] == 2

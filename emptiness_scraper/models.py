@@ -6,6 +6,12 @@ from pathlib import Path
 from typing import Any
 
 
+def message_order(message: Message) -> tuple:
+    value = str(message.message_id)
+    identifier = (0, int(value)) if value.isdecimal() else (1, value)
+    return message.timestamp, message.source, identifier
+
+
 @dataclass(slots=True)
 class Message:
     source: str

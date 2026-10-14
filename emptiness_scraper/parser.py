@@ -6,7 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-from .models import ExportFile, Message
+from .models import ExportFile, Message, message_order
+from .calendar_utils import resolve_timezone
 
 
 class ExportValidationError(ValueError):
@@ -43,12 +44,12 @@ def discover_json_files(inputs: Iterable[str | Path]) -> list[Path]:
     return unique
 
 
-def _timestamp(item: dict[str, Any]) -> datetime:
+def _timestamp(item: dict[str, Any], timezone_name: str) -> datetime:
     epoch = item.get("date_unixtime")
     if epoch not in (None, ""):
         try:
             return datetime.fromtimestamp(int(epoch), tz=UTC)
-        except (TypeError, ValueError, OSError):
+        except (TypeError, ValueError, OSError, OverflowError):
             pass
     value = item.get("date")
     if not isinstance(value, str):
@@ -57,7 +58,7 @@ def _timestamp(item: dict[str, Any]) -> datetime:
         parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as error:
         raise ExportValidationError(f"Invalid message timestamp: {value}") from error
-    return parsed.replace(tzinfo=parsed.tzinfo or UTC).astimezone(UTC)
+    return parsed.replace(tzinfo=parsed.tzinfo or resolve_timezone(timezone_name)).astimezone(UTC)
 
 
 def _reaction_count(item: dict[str, Any]) -> int:
@@ -77,9 +78,9 @@ def _media_type(item: dict[str, Any]) -> str:
     return ""
 
 
-def _load_export(path: Path) -> ExportFile:
+def _load_export(path: Path, timezone_name: str) -> ExportFile:
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         raise ExportValidationError(f"Cannot read {path.name}: {error}") from error
     if not isinstance(data, dict) or not isinstance(data.get("messages"), list):
@@ -89,12 +90,16 @@ def _load_export(path: Path) -> ExportFile:
 
     messages: list[Message] = []
     service_count = 0
-    for item in data["messages"]:
+    for position, item in enumerate(data["messages"], start=1):
         if not isinstance(item, dict):
-            continue
-        if item.get("type") != "message":
+            raise ExportValidationError(f"{path.name}: record {position} must be an object.")
+        if item.get("type") == "service":
             service_count += 1
             continue
+        if item.get("type") not in {"message", "rich_message"}:
+            raise ExportValidationError(f"{path.name}: unsupported record type at position {position}.")
+        if not isinstance(item.get("id"), (int, str)) or not item.get("from_id"):
+            raise ExportValidationError(f"{path.name}: record {position} requires id and from_id.")
         sender_id = str(item.get("from_id") or "unknown")
         sender_name = str(item.get("from") or sender_id)
         text = flatten_text(item.get("text", ""))
@@ -102,7 +107,7 @@ def _load_export(path: Path) -> ExportFile:
             Message(
                 source=path.name,
                 message_id=item.get("id", ""),
-                timestamp=_timestamp(item),
+                timestamp=_timestamp(item, timezone_name),
                 sender_id=sender_id,
                 sender_name=sender_name,
                 text=text,
@@ -111,10 +116,10 @@ def _load_export(path: Path) -> ExportFile:
                 edited=bool(item.get("edited") or item.get("edited_unixtime")),
                 forwarded=bool(item.get("forwarded_from") or item.get("saved_from")),
                 reactions=_reaction_count(item),
-                raw=item,
+                raw={key: item[key] for key in ("file", "photo", "sticker_emoji", "mime_type") if key in item},
             )
         )
-    messages.sort(key=lambda value: (value.timestamp, str(value.message_id)))
+    messages.sort(key=message_order)
     return ExportFile(
         path=path,
         chat_name=str(data.get("name") or path.stem),
@@ -126,10 +131,16 @@ def _load_export(path: Path) -> ExportFile:
     )
 
 
-def load_exports(paths: Iterable[str | Path]) -> list[ExportFile]:
-    exports = [_load_export(path) for path in discover_json_files(paths)]
+def load_exports(paths: Iterable[str | Path], timezone_name: str = "Asia/Tehran") -> list[ExportFile]:
+    resolve_timezone(timezone_name)
+    exports = [_load_export(path, timezone_name) for path in discover_json_files(paths)]
     far_future = datetime.max.replace(tzinfo=UTC)
     exports.sort(key=lambda item: (item.first_timestamp or far_future, item.path.name))
+    counts = Counter(item.path.name for item in exports)
+    for index, export in enumerate(exports, start=1):
+        if counts[export.path.name] > 1:
+            for message in export.messages:
+                message.source = f"{index}:{export.path.name}"
     return exports
 
 
@@ -141,11 +152,13 @@ def merge_messages(exports: Iterable[ExportFile]) -> tuple[list[Message], int]:
         local_occurrences: Counter[tuple] = Counter()
         for message in export.messages:
             fingerprint = (
+                message.message_id,
                 message.timestamp,
                 message.sender_id,
                 message.text,
                 message.media_type,
                 message.reply_to_message_id,
+                json.dumps({key: message.raw.get(key) for key in ("file", "photo", "sticker_emoji", "mime_type")}, sort_keys=True, ensure_ascii=False),
             )
             local_occurrences[fingerprint] += 1
             occurrence = local_occurrences[fingerprint]
@@ -154,5 +167,5 @@ def merge_messages(exports: Iterable[ExportFile]) -> tuple[list[Message], int]:
                 continue
             maximum_occurrences[fingerprint] = occurrence
             merged.append(message)
-    merged.sort(key=lambda item: (item.timestamp, item.source, str(item.message_id)))
+    merged.sort(key=message_order)
     return merged, duplicate_count

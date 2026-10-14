@@ -80,3 +80,31 @@ def test_generate_bundle_never_overwrites_a_previous_run(tmp_path):
 
     assert first != second
     assert first.exists() and second.exists()
+
+
+def test_report_exposes_temporal_comparison_and_full_latency_statistics(tmp_path):
+    result = sample_result()
+    result["response_statistics"] = {"Beta": {"raw": {"count": 1, "mean_seconds": 60, "median_seconds": 60, "p95_seconds": 60, "trimmed_mean_seconds": 60}}}
+    result["restart_statistics"] = {"Alpha": {"eligible_transitions": 2, "same_sender_restarts": 1, "rate_percent": 50}}
+    output = generate_bundle(result, tmp_path)
+    assert (output / "appendix_timeline.md").exists()
+    assert "p95_seconds" in (output / "appendix_responses.md").read_text(encoding="utf-8")
+    assert "eligible_transitions" in (output / "report.md").read_text(encoding="utf-8")
+
+
+def test_csv_excerpt_cannot_be_executed_as_spreadsheet_formula(tmp_path):
+    result = sample_result()
+    result["signals"] = [{"category": "question", "excerpt": '=HYPERLINK("https://example.test")'}]
+    output = generate_bundle(result, tmp_path)
+    with (output / "csv" / "signals.csv").open(encoding="utf-8-sig", newline="") as handle:
+        row = next(csv.DictReader(handle))
+    assert row["excerpt"].startswith("'=")
+
+
+def test_markdown_escapes_embedded_html_and_linebreaks(tmp_path):
+    result = sample_result()
+    result["text"]["words"] = [["<script>\r\n|text", 1]]
+    output = generate_bundle(result, tmp_path)
+    text = (output / "appendix_text_and_emoji.md").read_text(encoding="utf-8")
+    assert "<script>" not in text
+    assert "&lt;script&gt;" in text

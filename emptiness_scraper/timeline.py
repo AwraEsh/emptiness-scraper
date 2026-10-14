@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Iterable
 
-from .models import CensoredInterval, Message, Response, Session, Turn
+from .models import CensoredInterval, Message, Response, Session, Turn, message_order
 
 
 def _crosses_interval(start, end, interval: CensoredInterval) -> bool:
@@ -15,7 +15,9 @@ def build_sessions(
     gap: timedelta,
     censored: list[CensoredInterval] | None = None,
 ) -> list[Session]:
-    ordered = sorted(messages, key=lambda item: (item.timestamp, str(item.message_id)))
+    if gap <= timedelta(0):
+        raise ValueError("Session gap must be positive.")
+    ordered = sorted(messages, key=message_order)
     if not ordered:
         return []
     groups: list[list[Message]] = [[ordered[0]]]

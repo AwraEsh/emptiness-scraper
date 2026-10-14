@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 
 import pytest
 
@@ -18,7 +19,7 @@ def message(message_id, timestamp, sender, sender_id, text):
         "id": message_id,
         "type": "message",
         "date": timestamp,
-        "date_unixtime": str(int(timestamp.replace("-", "").replace(":", "").replace("T", "")[:10])),
+        "date_unixtime": str(int(datetime.fromisoformat(timestamp).replace(tzinfo=UTC).timestamp())),
         "from": sender,
         "from_id": sender_id,
         "text": text,

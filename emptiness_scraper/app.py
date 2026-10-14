@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import math
 from datetime import timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfoNotFoundError
@@ -10,6 +11,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, FloatPrompt, IntPrompt, Prompt
 from rich.table import Table
+from rich.markdown import Markdown
 
 from . import __version__
 from .analysis import AnalysisOptions, analyze_chat
@@ -39,7 +41,23 @@ def about_text() -> str:
 
 
 def parse_path_input(value: str) -> list[str]:
-    return [part.strip().strip('"') for part in value.split(";") if part.strip().strip('"')]
+    paths = []
+    current = []
+    quote = None
+    for character in value:
+        if character in {'"', "'"} and (quote is None or quote == character):
+            quote = None if quote else character
+        elif character == ";" and quote is None:
+            if "".join(current).strip():
+                paths.append("".join(current).strip())
+            current = []
+        else:
+            current.append(character)
+    if quote:
+        raise ValueError("Unclosed quote in export path.")
+    if "".join(current).strip():
+        paths.append("".join(current).strip())
+    return paths
 
 
 def _show_exports(exports: list[ExportFile]) -> None:
@@ -70,19 +88,20 @@ def _choose_sides(exports: list[ExportFile]) -> tuple[list[Side], set[str]]:
         table.add_row(sender_id, names.get(sender_id, sender_id), str(count))
     console.print(table)
     suggested_a, suggested_b, excluded = suggest_sides(exports)
-    console.print(f"Suggested Participant A: [bold]{suggested_a.label}[/] — {', '.join(sorted(suggested_a.ids))}")
-    console.print(f"Suggested Participant B: [bold]{suggested_b.label}[/] — {', '.join(sorted(suggested_b.ids))}")
+    console.print(f"Suggested Participant A: {suggested_a.label} — {', '.join(sorted(suggested_a.ids))}", markup=False)
+    console.print(f"Suggested Participant B: {suggested_b.label} — {', '.join(sorted(suggested_b.ids))}", markup=False)
+    console.print("Mapping is a message-volume heuristic. Review account aliases and excluded senders carefully.")
     if excluded:
         console.print(f"Suggested exclusions: {', '.join(sorted(excluded))}")
-    if Confirm.ask("Use this participant mapping?", default=True):
+    if Confirm.ask("Use this participant mapping?", default=len(counts) == 2):
         return [suggested_a, suggested_b], excluded
     all_ids = set(counts)
     ids_a = {value.strip() for value in Prompt.ask("Participant A sender IDs, comma-separated").split(",") if value.strip()}
     ids_b = {value.strip() for value in Prompt.ask("Participant B sender IDs, comma-separated").split(",") if value.strip()}
     if not ids_a or not ids_b or ids_a & ids_b or not (ids_a | ids_b) <= all_ids:
         raise ValueError("Each participant needs distinct sender IDs from the detected list.")
-    label_a = Prompt.ask("Participant A report name", default=names.get(next(iter(ids_a)), "Participant A"))
-    label_b = Prompt.ask("Participant B report name", default=names.get(next(iter(ids_b)), "Participant B"))
+    label_a = Prompt.ask("Participant A report name", default=names.get(sorted(ids_a)[0], "Participant A"))
+    label_b = Prompt.ask("Participant B report name", default=names.get(sorted(ids_b)[0], "Participant B"))
     if label_a == label_b:
         label_b = f"{label_b} (B)"
     return [Side(label_a, ids_a), Side(label_b, ids_b)], all_ids - ids_a - ids_b
@@ -112,6 +131,7 @@ def _file_audit(exports: list[ExportFile]) -> tuple[list[dict], list[str]]:
         rows.append(
             {
                 "name": export.path.name,
+                "source": export.messages[0].source if export.messages else export.path.name,
                 "messages": len(export.messages),
                 "service_records": export.service_count,
                 "first_timestamp": export.first_timestamp.isoformat() if export.first_timestamp else None,
@@ -129,18 +149,18 @@ def _file_audit(exports: list[ExportFile]) -> tuple[list[dict], list[str]]:
 
 def run_analysis(settings: AppSettings) -> None:
     raw_paths = Prompt.ask("JSON export paths or a directory; separate multiple paths with semicolons")
-    exports = load_exports(parse_path_input(raw_paths))
+    choice = Prompt.ask("Export device timezone", choices=["Tehran", "Other"], default="Tehran" if settings.timezone == "Asia/Tehran" else "Other")
+    timezone_name = "Asia/Tehran" if choice == "Tehran" else Prompt.ask("IANA timezone or offset, e.g. Europe/Berlin or +04:00", default=settings.timezone)
+    resolve_timezone(timezone_name)
+    exports = load_exports(parse_path_input(raw_paths), timezone_name=timezone_name)
     _show_exports(exports)
     sides, excluded = _choose_sides(exports)
-    timezone_name = settings.timezone
     session_gap = settings.session_gap_hours
     censored: list[CensoredInterval] = []
     if Confirm.ask("Open advanced settings for this analysis?", default=False):
-        timezone_name = Prompt.ask("Display timezone", default=timezone_name)
-        resolve_timezone(timezone_name)
         session_gap = FloatPrompt.ask("Session gap in hours", default=session_gap)
-        if session_gap <= 0:
-            raise ValueError("Session gap must be positive.")
+        if not math.isfinite(session_gap) or session_gap <= 0:
+            raise ValueError("Session gap must be finite and positive.")
         if Confirm.ask("Add incomplete or externally censored intervals?", default=False):
             censored = _censored_intervals(timezone_name)
     merged_messages, duplicate_count = merge_messages(exports)
@@ -162,13 +182,13 @@ def run_analysis(settings: AppSettings) -> None:
         result["audit"]["warnings"].extend(warnings)
         output_root = Path(settings.output_directory).expanduser().resolve()
         output = generate_bundle(result, output_root)
-    console.print(Panel.fit(f"Report created:\n[bold green]{output}[/]", title="Analysis complete"))
+    console.print(Panel.fit(str(output), title="Analysis complete"))
     console.print("Tip: Send the generated Markdown files to your Telegram Saved Messages for the best reading experience.")
 
 
-def validate_exports() -> None:
+def validate_exports(timezone_name: str = "Asia/Tehran") -> None:
     raw_paths = Prompt.ask("JSON export paths or a directory; separate multiple paths with semicolons")
-    exports = load_exports(parse_path_input(raw_paths))
+    exports = load_exports(parse_path_input(raw_paths), timezone_name=timezone_name)
     _show_exports(exports)
     files, warnings = _file_audit(exports)
     console.print(f"[green]Valid:[/] {len(files)} one-to-one Telegram export(s).")
@@ -178,7 +198,7 @@ def validate_exports() -> None:
 
 def view_reports(settings: AppSettings) -> None:
     root = Path(settings.output_directory).expanduser().resolve()
-    reports = sorted((path for path in root.glob("emptiness-scraper-*") if path.is_dir()), reverse=True) if root.exists() else []
+    reports = sorted((path for path in root.glob("emptiness-scraper-*") if (path / "report.md").is_file() and (path / "analysis.json").is_file()), reverse=True) if root.exists() else []
     if not reports:
         console.print("No generated reports were found.")
         return
@@ -188,6 +208,11 @@ def view_reports(settings: AppSettings) -> None:
     for index, path in enumerate(reports, start=1):
         table.add_row(str(index), str(path))
     console.print(table)
+    choice = IntPrompt.ask("Report to read, or 0 to return", choices=[str(value) for value in range(len(reports) + 1)], default=0)
+    if choice:
+        selected = reports[choice - 1]
+        console.print(Markdown((selected / "report.md").read_text(encoding="utf-8")))
+        console.print(f"Full report directory: {selected}", markup=False)
 
 
 def edit_settings(settings: AppSettings) -> AppSettings:
@@ -202,8 +227,10 @@ def edit_settings(settings: AppSettings) -> AppSettings:
             settings.timezone = value
         elif choice == 3:
             value = FloatPrompt.ask("Session gap in hours", default=settings.session_gap_hours)
-            if value > 0:
+            if math.isfinite(value) and value > 0:
                 settings.session_gap_hours = value
+            else:
+                raise ValueError("Session gap must be finite and positive.")
         elif choice == 4:
             settings.output_directory = Prompt.ask("Output directory", default=settings.output_directory)
         elif choice == 5:
@@ -217,9 +244,16 @@ def edit_settings(settings: AppSettings) -> AppSettings:
         elif choice == 6:
             category = Prompt.ask("Rule category", default="check_in")
             current = settings.rules.get(category, [])
-            settings.rules[category] = [value.strip() for value in Prompt.ask("Patterns separated with semicolons", default="; ".join(current)).split(";") if value.strip()]
-        elif choice == 7 and Confirm.ask("Reset every setting to its default?", default=False):
-            settings = AppSettings()
+            patterns = [value.strip() for value in Prompt.ask("Patterns separated with semicolons", default="; ".join(current)).split(";") if value.strip()]
+            for pattern in patterns:
+                try:
+                    re.compile(pattern)
+                except re.error as error:
+                    raise ValueError(f"Invalid pattern: {error}") from error
+            settings.rules[category] = patterns
+        elif choice == 7:
+            if Confirm.ask("Reset every setting to its default?", default=False):
+                settings = AppSettings()
         else:
             save_settings(settings)
             return settings
@@ -248,13 +282,14 @@ def main() -> int:
             elif choice == 3:
                 settings = edit_settings(settings)
             elif choice == 4:
-                validate_exports()
+                validate_exports(settings.timezone)
             elif choice == 5:
                 console.print(Panel.fit(about_text()))
             else:
                 return 0
         except (ExportValidationError, ValueError, OSError, ZoneInfoNotFoundError) as error:
-            console.print(f"[bold red]Error:[/] {error}")
+            console.print(f"Error: {error}", style="red", markup=False)
+            settings = load_settings()
         except (KeyboardInterrupt, EOFError):
             console.print("\nCancelled. No input files were changed.")
             return 130

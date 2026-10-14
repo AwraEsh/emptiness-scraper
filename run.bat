@@ -30,8 +30,12 @@ if not exist ".venv\Scripts\python.exe" (
 
 set "PYTHONUTF8=1"
 echo Checking required packages...
-".venv\Scripts\python.exe" -m pip install --disable-pip-version-check --quiet -r requirements.txt
-if errorlevel 1 goto :failure
+".venv\Scripts\python.exe" -m pip install --no-index --dry-run --disable-pip-version-check --quiet -r requirements.txt >nul 2>nul
+if errorlevel 1 (
+    echo Installing missing or incompatible packages...
+    ".venv\Scripts\python.exe" -m pip install --disable-pip-version-check -r requirements.txt
+    if errorlevel 1 goto :failure
+)
 
 ".venv\Scripts\python.exe" -m emptiness_scraper
 if errorlevel 1 exit /b 1
